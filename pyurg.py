@@ -35,19 +35,20 @@ class UrgDevice(object):
     def connect(self, dev_name = '/dev/ttyACM0', band_rate = 115200, time_out = 0.1):
         '''
         URGデバイスに接続
-        dev_name  : デバイス名またはポート番号
-                    (Device name or port number. ex:/dev/ttyACM0 or COM1)
-        band_rate : ボーレートの設定
-                    (Set band rate. ex: 9600, 38400, etc.)
-        time_out  : タイムアウト[s]の設定
-                    (Set timeout[s])
+        dev_name : デバイス名又はポート番号 例:/dev/ttyACM0, COM1, 他...
+        band_rate: ボーレートの設定 例: 9600, 38400, 他...
+        time_out : タイムアウト[s]の設定
+
+        
+        Connecting to URG device
+        dev_name  : Device name or port number. ex:/dev/ttyACM0, COM1, etc...
+        band_rate : Set band rate. ex: 9600, 38400, etc...
+        time_out  : Set timeout[s]
         '''
         self.SerUrg = serial.Serial(dev_name, band_rate, timeout = time_out)
         if not self.is_open():
             return False
-        # SCIP2.0プロトコルに設定
         self.set_SCIP2()
-        # 測定パラメータの取得
         self.get_parameter()
         return True
 
@@ -55,7 +56,7 @@ class UrgDevice(object):
         return self.SerUrg.isOpen()
 
     def flush_buf(self):
-        self.SerUrg.flushInput()
+        self.SerUrg.flushInputn()
 
     def send_cmd(self, cmd):
         if not self.is_open():
@@ -70,6 +71,7 @@ class UrgDevice(object):
     def set_SCIP2(self):
         '''
         SCIP2.0プロトコルに設定
+        Setting SCIP2.0 protcol
         '''
         self.send_cmd('SCIP2.0\n')
         self.__receive_data()
@@ -77,6 +79,7 @@ class UrgDevice(object):
     def get_version(self):
         '''
         バージョン情報を取得
+        Get version information
         '''
         if not self.is_open():
             return False
@@ -86,16 +89,17 @@ class UrgDevice(object):
 
     def get_parameter(self):
         '''
-        デバイスパラメータを取得
+        デバイスパラメータの取得
+        Get device parameter
         '''
         if not self.is_open():
             return False
         self.send_cmd('PP\n')
         get = self.__receive_data()
-        # 期待した値かどうかをチェック
+        # check expected value
         if not (get[:2] == ['PP\n', '00P\n']):
             return False
-        # 必要な情報を抜き取る
+        # pick received data out of parameters
         self.pp_params = {}
         for item in get[2:10]:
             tmp = re.split(r':|;', item)[:2]
@@ -104,7 +108,8 @@ class UrgDevice(object):
 
     def laser_on(self):
         '''
-        レーザを点灯させる。
+        レーザを点灯させる
+        Tuning on the laser
         '''
         if not self.is_open():
             return False
@@ -116,7 +121,8 @@ class UrgDevice(object):
         
     def laser_off(self):
         '''
-        レーザの消灯をさせる。距離データを取得中でも消灯させる。
+        レーザを消灯させる。距離デートを取得中でも。
+        Turning on the laser regardless of getting length datas
         '''
         if not self.is_open():
             return False
@@ -129,6 +135,7 @@ class UrgDevice(object):
     def __decode(self, encode_str):
         '''
         エンコードされた文字列を数値に変換し返却
+        Return a numeric which converted encoded string from numeric
         '''
         decode = 0
         for c in encode_str:
@@ -140,6 +147,7 @@ class UrgDevice(object):
     def __decode_length(self, encode_str, byte):
         '''
         距離データをデコードしリストで返却
+        Return leght datas as list
         '''
         data = []
         for i in range(0, len(encode_str), byte):
@@ -150,21 +158,25 @@ class UrgDevice(object):
     def capture(self):
         if not self.laser_on():
             return False
-        
+
         # 送信コマンドの作成
+        # make a send command
         cmd = 'GD' + self.pp_params['AMIN'].zfill(4) + self.pp_params['AMAX'].zfill(4) + '01\n'
         self.send_cmd(cmd)
         get = self.__receive_data()
         
         # 返答結果をチェック
+        # checking the answer
         if not (get[:2] == [cmd, '00P\n']):
             return False
-        
-        # タイムスタンプのデコード
+
+        # タイムスタンプをデコード
+        # decode the timestamp
         tm_str = get[2][:-1]
         timestamp = self.__decode(tm_str)
         
         # 距離データのデコード
+        # decode length datas
         length_byte = 0
         line_decode_str = ''
         if cmd[:2] == ('GS' or 'MS'):
@@ -172,6 +184,7 @@ class UrgDevice(object):
         elif cmd[:2] == ('GD' or 'MD'):
             length_byte = 3
         # 複数行の距離データ文字列を1行の距離データ文字列に結合する
+        # Combine different lines which mean length datas
         for line in get[3:]:
             if len(line) == 66:
                 line_decode_str += line[:-2]
