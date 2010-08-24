@@ -56,7 +56,7 @@ class UrgDevice(object):
         return self.SerUrg.isOpen()
 
     def flush_buf(self):
-        self.SerUrg.flushInputn()
+        self.SerUrg.flushInput()
 
     def send_cmd(self, cmd):
         if not self.is_open():
