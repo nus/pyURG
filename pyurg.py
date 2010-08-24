@@ -157,7 +157,7 @@ class UrgDevice(object):
     
     def capture(self):
         if not self.laser_on():
-            return False
+            return [], -1
 
         # 送信コマンドの作成
         # make a send command
@@ -168,7 +168,7 @@ class UrgDevice(object):
         # 返答結果をチェック
         # checking the answer
         if not (get[:2] == [cmd, '00P\n']):
-            return False
+            return [], -1
 
         # タイムスタンプをデコード
         # decode the timestamp
