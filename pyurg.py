@@ -25,6 +25,7 @@
 
 import serial
 import re
+import math
 
 class UrgDevice(object):
     def __del__(self):
@@ -154,6 +155,14 @@ class UrgDevice(object):
             split_str = encode_str[i : i+byte]
             data.append(self.__decode(split_str))
         return data
+
+    def index2rad(self, index):
+        '''
+        インデックスからラジアンに変換して返却
+        Convert index to radian and reurun.
+        '''
+        rad = (2.0 * math.pi) * (index - int(self.pp_params['AFRT'])) / int(self.pp_params['ARES'])
+        return rad
     
     def capture(self):
         if not self.laser_on():
@@ -190,9 +199,12 @@ class UrgDevice(object):
                 line_decode_str += line[:-2]
             elif len(line) > 2:
                 line_decode_str += line[:-2]
-        
-        length_datas = self.__decode_length(line_decode_str, length_byte)
-        return (length_datas, timestamp)
+
+        # 開始インデックスまでダミーデータを入れておく
+        # Set dummy datas by begin index.
+        self.length_datas = [-1 for i in range(int(self.pp_params['AMIN']))]
+        self.length_datas += self.__decode_length(line_decode_str, length_byte)
+        return (self.length_datas, timestamp)
         
 
 def main():
