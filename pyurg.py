@@ -194,11 +194,9 @@ class UrgDevice(object):
             length_byte = 3
         # 複数行の距離データ文字列を1行の距離データ文字列に結合する
         # Combine different lines which mean length datas
+        NUM_OF_CHECKSUM = -2
         for line in get[3:]:
-            if len(line) == 66:
-                line_decode_str += line[:-2]
-            elif len(line) > 2:
-                line_decode_str += line[:-2]
+            line_decode_str += line[:NUM_OF_CHECKSUM]
 
         # 開始インデックスまでダミーデータを入れておく
         # Set dummy datas by begin index.
