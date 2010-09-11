@@ -122,8 +122,8 @@ class UrgDevice(object):
         
     def laser_off(self):
         '''
-        レーザを消灯させる。距離デートを取得中でも。
-        Turning on the laser regardless of getting length datas
+        レーザを消灯させる。距離データを取得中でも。
+        Turning on the laser regardless of getting length data
         '''
         if not self.is_open():
             return False
@@ -148,7 +148,7 @@ class UrgDevice(object):
     def __decode_length(self, encode_str, byte):
         '''
         距離データをデコードしリストで返却
-        Return leght datas as list
+        Return leght data as list
         '''
         data = []
         for i in range(0, len(encode_str), byte):
@@ -185,7 +185,7 @@ class UrgDevice(object):
         timestamp = self.__decode(tm_str)
         
         # 距離データのデコード
-        # decode length datas
+        # decode length data
         length_byte = 0
         line_decode_str = ''
         if cmd[:2] == ('GS' or 'MS'):
@@ -193,16 +193,16 @@ class UrgDevice(object):
         elif cmd[:2] == ('GD' or 'MD'):
             length_byte = 3
         # 複数行の距離データ文字列を1行の距離データ文字列に結合する
-        # Combine different lines which mean length datas
+        # Combine different lines which mean length data
         NUM_OF_CHECKSUM = -2
         for line in get[3:]:
             line_decode_str += line[:NUM_OF_CHECKSUM]
 
         # 開始インデックスまでダミーデータを入れておく
-        # Set dummy datas by begin index.
-        self.length_datas = [-1 for i in range(int(self.pp_params['AMIN']))]
-        self.length_datas += self.__decode_length(line_decode_str, length_byte)
-        return (self.length_datas, timestamp)
+        # Set dummy data by begin index.
+        self.length_data = [-1 for i in range(int(self.pp_params['AMIN']))]
+        self.length_data += self.__decode_length(line_decode_str, length_byte)
+        return (self.length_data, timestamp)
         
 
 def main():
