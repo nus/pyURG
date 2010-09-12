@@ -26,6 +26,7 @@
 import serial
 import re
 import math
+import time
 
 class UrgDevice(serial.Serial):
     def __init__(self):
@@ -36,7 +37,7 @@ class UrgDevice(serial.Serial):
 
     def connect(self, port = '/dev/ttyACM0', baudrate = 115200, timeout = 0.1):
         '''
-        Connecting to URG device
+        Connect to URG device
         port      : Port or device name. ex:/dev/ttyACM0, COM1, etc...
         baudrate  : Set baudrate. ex: 9600, 38400, etc...
         timeout   : Set timeout[sec]
@@ -64,7 +65,7 @@ class UrgDevice(serial.Serial):
         '''Clear input buffer.'''
         self.flushInput()
 
-    def send_cmd(self, cmd):
+    def send_command(self, cmd):
         '''Send command to device.'''
         self.write(cmd)
 
@@ -72,9 +73,9 @@ class UrgDevice(serial.Serial):
         return self.readlines()
     
     def set_scip2(self):
-        '''Setting SCIP2.0 protcol'''
+        '''Set SCIP2.0 protcol'''
         self.flush_input_buf()
-        self.send_cmd('SCIP2.0\n')
+        self.send_command('SCIP2.0\n')
         return self.__receive_data()
 
     def get_version(self):
@@ -83,7 +84,7 @@ class UrgDevice(serial.Serial):
             return False
 
         self.flush_input_buf()
-        self.send_cmd('VV\n')
+        self.send_command('VV\n')
         get = self.__receive_data()
         return get
 
@@ -92,7 +93,7 @@ class UrgDevice(serial.Serial):
         if not self.is_open():
             return False
         
-        self.send_cmd('PP\n')
+        self.send_command('PP\n')
         
         get = self.__receive_data()
         
@@ -108,25 +109,25 @@ class UrgDevice(serial.Serial):
         return self.pp_params
 
     def laser_on(self):
-        '''Tuning on the laser.'''
+        '''Turn on the laser.'''
         if not self.is_open():
             return False
         
-        self.send_cmd('BM\n')
+        self.send_command('BM\n')
         
         get = self.__receive_data()
         
-        if not(get == ['BM\n', '00P\n', '\n']):
+        if not(get == ['BM\n', '00P\n', '\n']) and not(get == ['BM\n', '02R\n', '\n']):
             return False
         return True
         
     def laser_off(self):
-        '''Turning off the laser.'''
+        '''Turn off the laser.'''
         if not self.is_open():
             return False
 
         self.flush_input_buf()
-        self.send_cmd('QT\n')
+        self.send_command('QT\n')
         get = self.__receive_data()
         
         if not(get == ['QT\n', '00P\n', '\n']):
@@ -158,20 +159,32 @@ class UrgDevice(serial.Serial):
         '''Convert index to radian and reurun.'''
         rad = (2.0 * math.pi) * (index - int(self.pp_params['AFRT'])) / int(self.pp_params['ARES'])
         return rad
-    
+
+    def create_capture_command(self):
+        '''create capture command.'''
+        cmd = 'GD' + self.pp_params['AMIN'].zfill(4) + self.pp_params['AMAX'].zfill(4) + '01\n'
+        return cmd
+
+    def scan_sec(self):
+        '''Return time of a cycle.'''
+        rpm = float(self.pp_params['SCAN'])
+        return (60.0 / rpm)
+        
     def capture(self):
         if not self.laser_on():
             return [], -1
 
-        # make a send command
-        cmd = 'GD' + self.pp_params['AMIN'].zfill(4) + self.pp_params['AMAX'].zfill(4) + '01\n'
-        self.send_cmd(cmd)
+        # Receive lenght data
+        cmd = self.create_capture_command()
+        self.flush_input_buf()
+        self.send_command(cmd)
+        time.sleep(0.1)
         get = self.__receive_data()
         
         # checking the answer
         if not (get[:2] == [cmd, '00P\n']):
             return [], -1
-
+        
         # decode the timestamp
         tm_str = get[2][:-1] # timestamp
         timestamp = self.__decode(tm_str)
@@ -199,9 +212,14 @@ def main():
     if not urg.connect():
         print 'Connect error'
         exit()
-        
-    data, tm = urg.capture()
-    print data
+
+    for i in range(10):
+        data, tm = urg.capture()
+        if data == 0:
+            continue
+        print len(data), tm
+
+
 
 if __name__ == '__main__':
     main()
