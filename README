@@ -1,5 +1,5 @@
 # What is pyURG?
-pyURG is a library for using URG device in Python.
+pyURG is a library for using Hokuyo-URG laser range sensor in Python.
 
 # How to use
 $ python
